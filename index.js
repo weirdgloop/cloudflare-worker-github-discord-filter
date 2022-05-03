@@ -33,11 +33,14 @@ async function handleRequest(request) {
   const jsonData = JSON.parse(data)
   const event = request.headers.get('X-GitHub-Event')
 
+  // Filter out unwanted Discord messages from GitHub to reduce spam and filter out GitHub events Discord is known to ignore to reduce rate-limiting.
   if (!(
-    // Ignore "GitHub Actions checks success..."
-    event === 'check_suite' && jsonData.check_suite.conclusion === 'success' ||
-    // Ignore "Repo Sync success..."
-    event === 'check_run' && jsonData.check_run.name === 'Repo Sync' && jsonData.check_run.conclusion === 'success'
+    // Ignore "GitHub Actions checks success..." and as well as the Discord ignored non-completed check_suite events.
+    event === 'check_suite' && (jsonData.status !== 'completed' || jsonData.check_suite.conclusion === 'success') ||
+    // Ignore "Repo Sync success..." and as well as the Discord ignored non-completed check_run events.
+    event === 'check_run' && (jsonData.status !== 'completed' || (jsonData.check_run.name === 'Repo Sync' && jsonData.check_run.conclusion === 'success')) ||
+    // Ignore workflow events as Discord already ignores them.
+    event === 'workflow_job' || event === 'workflow_run'
   )) {
     // Forward the GitHub webhook data to the Discord webhook.
     return fetch(`https://discord.com/api/webhooks/${DISCORD_WEBHOOK_ID}/${DISCORD_WEBHOOK_TOKEN}/github`, request)
