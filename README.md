@@ -1,1 +1,1 @@
-Cloudflare worker to handle GitHub webhooks and pass them onto Discord.
+Cloudflare worker to filter GitHub events and relay the rest to Discord.
