@@ -33,7 +33,12 @@ async function handleRequest(request) {
   const jsonData = JSON.parse(data)
   const event = request.headers.get('X-GitHub-Event')
 
-  if ( event !== 'tkctest' ) {
+  if (!(
+    // Ignore "GitHub Actions checks success..."
+    event === 'check_suite' && jsonData.check_suite.conclusion === 'success' ||
+    // Ignore "Repo Sync success..."
+    event === 'check_run' && jsonData.check_run.name === 'Repo Sync' && jsonData.check_run.conclusion === 'success'
+  )) {
     // Forward the GitHub webhook data to the Discord webhook.
     return fetch(`https://discord.com/api/webhooks/${DISCORD_WEBHOOK_ID}/${DISCORD_WEBHOOK_TOKEN}/github`, request)
   } else {
