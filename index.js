@@ -39,6 +39,8 @@ async function handleRequest(request) {
     (event === 'check_suite' && (jsonData.status !== 'completed' || jsonData.check_suite.conclusion === 'success')) ||
     // Ignore "Repo Sync success..." and as well as the Discord ignored non-completed check_run events.
     (event === 'check_run' && (jsonData.status !== 'completed' || (jsonData.check_run.name === 'Repo Sync' && jsonData.check_run.conclusion === 'success'))) ||
+    // Ignore Repo Sync push for localisation updates.
+    (event === 'push' && jsonData.ref === 'refs/heads/weirdgloop/repo-sync' && jsonData.commits.every((e) => e.committer.email === 'l10n-bot@translatewiki.net')) ||
     // Ignore workflow events as Discord already ignores them.
     event === 'workflow_job' || event === 'workflow_run'
   )) {
