@@ -36,9 +36,9 @@ async function handleRequest(request) {
   // Filter out unwanted Discord messages from GitHub to reduce spam and filter out GitHub events Discord is known to ignore to reduce rate-limiting.
   if (!(
     // Ignore "GitHub Actions checks success..." and as well as the Discord ignored non-completed check_suite events.
-    event === 'check_suite' && (jsonData.status !== 'completed' || jsonData.check_suite.conclusion === 'success') ||
+    (event === 'check_suite' && (jsonData.status !== 'completed' || jsonData.check_suite.conclusion === 'success')) ||
     // Ignore "Repo Sync success..." and as well as the Discord ignored non-completed check_run events.
-    event === 'check_run' && (jsonData.status !== 'completed' || (jsonData.check_run.name === 'Repo Sync' && jsonData.check_run.conclusion === 'success')) ||
+    (event === 'check_run' && (jsonData.status !== 'completed' || (jsonData.check_run.name === 'Repo Sync' && jsonData.check_run.conclusion === 'success'))) ||
     // Ignore workflow events as Discord already ignores them.
     event === 'workflow_job' || event === 'workflow_run'
   )) {
