@@ -1,5 +1,9 @@
 {
-  "name": "cloudflare-worker-github-discord-filter",
+  "name": "gcf-github-discord",
   "version": "0.1.0",
-  "main": "index.js"
+  "main": "index.js",
+  "type": "module",
+  "dependencies": {
+    "@google-cloud/functions-framework": "^3.3.0"
+  }
 }

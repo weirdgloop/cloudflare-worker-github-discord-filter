@@ -1,40 +1,42 @@
+import functions from '@google-cloud/functions-framework'
+import { webcrypto as crypto } from 'crypto'
+
+const DISCORD_WEBHOOK_ID = process.env.DISCORD_WEBHOOK_ID
+const DISCORD_WEBHOOK_TOKEN = process.env.DISCORD_WEBHOOK_TOKEN
+const GITHUB_SECRET = process.env.GITHUB_SECRET
 const USER_DEPENDABOT = 49699333
 
-addEventListener('fetch', event => {
-  event.respondWith(handleRequest(event.request))
-})
-
 /**
- * Respond with hello worker text
- * @param {Request} request
+ * HTTP function that filters Github events and relays the rest to Discord.
+ *
+ * @param {Object} req Cloud Function request context.
+ * @param {Object} res Cloud Function response context.
  */
-async function handleRequest(request) {
+functions.http('handleRequest', async (req, res) => {
   // Expect a POST request.
-  if ( request.method !== 'POST' ) {
-    return new Response(null, {
-      status: 405,
-      statusText: 'Method Not Allowed',
-    })
+  if ( req.method !== 'POST' ) {
+    // "Method Not Allowed"
+    res.status(405).send()
+    return
   }
 
   // Verify the request has the expected signature.
-  const expectedSignature = request.headers.get('X-Hub-Signature-256') || ''
-  const data = await request.clone().text()
+  const expectedSignature = req.get('X-Hub-Signature-256') || ''
+  const data = req.rawBody
   let enc = new TextEncoder()
   const key = await crypto.subtle.importKey('raw', enc.encode(GITHUB_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
   const rawSig = await crypto.subtle.sign('HMAC', key, enc.encode(data))
   const actualSignature = 'sha256=' + (new Uint8Array(rawSig).reduce((a, b) => a + b.toString(16).padStart(2, '0'), ''))
 
   if ( expectedSignature !== actualSignature ) {
-    return new Response(null, {
-      status: 401,
-      statusText: 'Unauthorized',
-    })
+    // "Unauthorized"
+    res.status(401).send()
+    return
   }
 
   // Since the request body was retrieved as text the JSON must be parsed.
-  const jsonData = JSON.parse(data)
-  const event = request.headers.get('X-GitHub-Event')
+  const jsonData = req.body
+  const event = req.get('X-GitHub-Event')
 
   // Filter out unwanted Discord messages from GitHub to reduce spam and filter out GitHub events Discord is known to ignore to reduce rate-limiting.
   if (!(
@@ -50,12 +52,15 @@ async function handleRequest(request) {
     event === 'workflow_job' || event === 'workflow_run'
   )) {
     // Forward the GitHub webhook data to the Discord webhook.
-    return fetch(`https://discord.com/api/webhooks/${DISCORD_WEBHOOK_ID}/${DISCORD_WEBHOOK_TOKEN}/github`, request)
+    console.log(await fetch(`https://discord.com/api/webhooks/${DISCORD_WEBHOOK_ID}/${DISCORD_WEBHOOK_TOKEN}/github`, {
+      method: 'POST',
+      body: data,
+      headers: req.headers,
+    }))
+    res.status(200).send()
   } else {
     // Otherwise, this request has been filtered out.
-    return new Response(null, {
-      status: 204,
-      statusText: 'No Content',
-    })
+    // "No Content"
+    res.status(204).send()
   }
-}
+})
