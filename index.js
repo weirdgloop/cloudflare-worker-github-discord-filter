@@ -52,12 +52,12 @@ functions.http('handleRequest', async (req, res) => {
     event === 'workflow_job' || event === 'workflow_run'
   )) {
     // Forward the GitHub webhook data to the Discord webhook.
-    console.log(await fetch(`https://discord.com/api/webhooks/${DISCORD_WEBHOOK_ID}/${DISCORD_WEBHOOK_TOKEN}/github`, {
+    const discord = await fetch(`https://discord.com/api/webhooks/${DISCORD_WEBHOOK_ID}/${DISCORD_WEBHOOK_TOKEN}/github`, {
       method: 'POST',
       body: data,
       headers: req.headers,
-    }))
-    res.status(200).send()
+    })
+    res.status(discord.status).set(Object.fromEntries(discord.headers)).send(await discord.text())
   } else {
     // Otherwise, this request has been filtered out.
     // "No Content"
